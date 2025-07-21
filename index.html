@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>RayBOT Chat PWA</title>
+   <style>
+       body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+       .hidden { display: none; }
+       .chat-box { max-width: 400px; margin: auto; padding: 10px; border: 1px solid #ddd; }
+       .bot-message, .user-message { padding: 5px; margin: 5px; }
+       .bot-message { background-color: #f0f0f0; }
+   </style>
+</head>
+<body>
+   <h1>RayBOT Chat</h1>
+   <div class="chat-box" id="chat-box">
+       <div class="bot-message">Welcome! I'm RayBOT. Type or speak to start chatting.</div>
+   </div>
+   <input type="text" id="user-input" placeholder="Type a message">
+   <button id="send-btn">Send</button>
+   <button id="voice-btn">🎤 Speak</button>
+
+   <!-- Admin Login -->
+   <div class="admin-login">
+       <h2>Admin Access</h2>
+       <input type="text" id="admin-username" placeholder="Enter admin username">
+       <input type="password" id="admin-password" placeholder="Enter admin password">
+       <button id="login-btn">Login</button>
+   </div>
+
+   <!-- Admin Panel -->
+   <div id="admin-panel" class="hidden">
+       <h3>Add New Q&A</h3>
+       <input type="text" id="new-question" placeholder="Enter new question trigger">
+       <input type="text" id="new-answer" placeholder="Enter new answer">
+       <button id="add-qa-btn">Add Q&A</button>
+   </div>
+
+   <script>
+       // Register PWA dynamically
+       const manifest = {
+           name: "RayBOT Chat",
+           short_name: "RayBOT",
+           start_url: "./",
+           display: "standalone",
+           background_color: "#ffffff",
+           icons: [{ src: "icon.png", sizes: "192x192", type: "image/png" }]
+       };
+       const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+       const link = document.createElement("link");
+       link.rel = "manifest";
+       link.href = URL.createObjectURL(blob);
+       document.head.appendChild(link);
+
+       if ("serviceWorker" in navigator) {
+           navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
+               const cacheName = 'raybot-cache-v1';
+               const assets = ['/', '/index.html'];
+               self.addEventListener('install', event => {
+                   event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(assets)));
+               });
+               self.addEventListener('fetch', event => {
+                   event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+               });
+           `], { type: "application/javascript" })));
+       }
+
+       // Chat logic
+       let responses = {
+           "HELLO": ["Hello! How can I help?", "Hey there!"],
+           "AY": ["Ray is my creator", "RAY is good", "RAY is not bad", "RAY is in Guam"]
+       };
+
+       // Admin login validation
+       const correctUsername = "1";
+       const correctPassword = "2";
+       document.getElementById("login-btn").addEventListener("click", () => {
+           const enteredUsername = document.getElementById("admin-username").value;
+           const enteredPassword = document.getElementById("admin-password").value;
+           if (enteredUsername === correctUsername && enteredPassword === correctPassword) {
+               document.getElementById("admin-panel").classList.remove("hidden");
+               alert("Access granted!");
+           } else {
+               alert("Incorrect username or password!");
+           }
+       });
+
+       document.getElementById("send-btn").addEventListener("click", () => handleInput());
+       document.getElementById("voice-btn").addEventListener("click", () => voiceInput());
+
+       function handleInput() {
+           const userInput = document.getElementById("user-input").value.toUpperCase();
+           if (!userInput.trim()) return;
+           addMessage("user-message", userInput);
+           respond(userInput);
+           document.getElementById("user-input").value = "";
+       }
+
+       function voiceInput() {
+           const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+           recognition.lang = 'en-US';
+           recognition.start();
+           recognition.onresult = event => {
+               const userInput = event.results[0][0].transcript.toUpperCase();
+               addMessage("user-message", userInput);
+               respond(userInput);
+           };
+       }
+
+       function respond(input) {
+           const reply = responses[input] ? responses[input][Math.floor(Math.random() * responses[input].length)] : "I don't understand, can you rephrase?";
+           addMessage("bot-message", reply);
+           speak(reply);
+       }
+
+       function addMessage(className, message) {
+           const chatBox = document.getElementById("chat-box");
+           const msgDiv = document.createElement("div");
+           msgDiv.className = className;
+           msgDiv.innerText = message;
+           chatBox.appendChild(msgDiv);
+           chatBox.scrollTop = chatBox.scrollHeight;
+       }
+
+       function speak(text) {
+           const synth = window.speechSynthesis;
+           const utterance = new SpeechSynthesisUtterance(text);
+           synth.speak(utterance);
+       }
+
+       // Admin can add new question-answer pairs
+       document.getElementById("add-qa-btn").addEventListener("click", () => {
+           const newQuestion = document.getElementById("new-question").value.toUpperCase();
+           const newAnswer = document.getElementById("new-answer").value;
+           if (newQuestion && newAnswer) {
+               if (!responses[newQuestion]) responses[newQuestion] = [];
+               responses[newQuestion].push(newAnswer);
+               alert("New Q&A added!");
+               document.getElementById("new-question").value = "";
+               document.getElementById("new-answer").value = "";
+           } else {
+               alert("Please enter both question and answer.");
+           }
+       });
+
+   </script>
+</body>
+</html>
