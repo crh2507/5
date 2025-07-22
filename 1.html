@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+ <title>RayBOT Chat PWA - $9/month</title>
+ <style>
+   body {
+     font-family: Arial, sans-serif;
+     text-align: center;
+     padding: 20px;
+     background: #f9f9f9;
+   }
+   h1 {
+     color: #333;
+   }
+   .section {
+     background: #fff;
+     padding: 20px;
+     margin: 20px auto;
+     max-width: 500px;
+     border: 1px solid #ccc;
+     border-radius: 10px;
+   }
+   input[type="tel"] {
+     padding: 10px;
+     width: 80%;
+     margin-bottom: 10px;
+     font-size: 1em;
+   }
+   button {
+     padding: 10px 20px;
+     font-size: 1em;
+     margin-top: 10px;
+     cursor: pointer;
+   }
+   a.button {
+     display: inline-block;
+     margin-top: 10px;
+     padding: 10px 20px;
+     background: #28a745;
+     color: #fff;
+     text-decoration: none;
+     font-weight: bold;
+     border-radius: 5px;
+   }
+   .ref-link {
+     font-family: monospace;
+     font-size: 0.9em;
+     background: #eee;
+     padding: 5px;
+     margin-top: 10px;
+     display: inline-block;
+   }
+ </style>
+</head>
+<body>
+
+ <h1>RayBOT Chat PWA</h1>
+
+ <div class="section">
+   <p><strong>Demo RayBOT Chat now:</strong></p>
+   <a class="button" href="https://crh2507.github.io/5/" target="_blank">Launch Demo</a>
+   <p style="margin-top:10px;"><strong>Admin Login:</strong> ID <code>1</code> / Password <code>2</code></p>
+ </div>
+
+ <div class="section">
+   <h2>Subscribe Now</h2>
+   <p>Just $9/month – you keep 99% as the owner or 90% as an affiliate seller.</p>
+   <a class="button" href="https://buy.stripe.com/28ocNTasB6NQ54kcMM" target="_blank">Subscribe for $9</a>
+ </div>
+
+ <div class="section">
+   <h2>Become an Affiliate</h2>
+   <p>Earn 90% every month someone you refer stays subscribed. Just enter your phone number:</p>
+   <input type="tel" id="phone" placeholder="Enter your phone number">
+   <br>
+   <button onclick="generateReferral()">Generate Referral Link</button>
+   <div id="refOutput" class="ref-link hidden"></div>
+ </div>
+
+ <script>
+   function generateReferral() {
+     const phone = document.getElementById('phone').value.trim();
+     if (!phone) {
+       alert("Please enter your phone number.");
+       return;
+     }
+     const link = `https://crh2507.github.io/5/?ref=${encodeURIComponent(phone)}`;
+     const output = document.getElementById('refOutput');
+     output.classList.remove('hidden');
+     output.innerHTML = `Your referral link:<br><a href="${link}" target="_blank">${link}</a>`;
+     localStorage.setItem('affiliateRef', phone);
+   }
+
+   // Auto-track referrals
+   (function () {
+     const urlParams = new URLSearchParams(window.location.search);
+     const ref = urlParams.get('ref');
+     if (ref) {
+       localStorage.setItem('affiliateRef', ref);
+       console.log('Referral tracked:', ref);
+     }
+   })();
+ </script>
+
+</body>
+</html>
