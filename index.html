@@ -4,12 +4,15 @@
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>RayBOT Chat PWA</title>
+   <link rel="manifest" href="manifest.json">
    <style>
        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
        .hidden { display: none; }
        .chat-box { max-width: 400px; margin: auto; padding: 10px; border: 1px solid #ddd; }
        .bot-message, .user-message { padding: 5px; margin: 5px; }
        .bot-message { background-color: #f0f0f0; }
+       input, button { margin: 5px; padding: 8px; width: 90%; max-width: 300px; }
+       button { cursor: pointer; }
    </style>
 </head>
 <body>
@@ -17,64 +20,35 @@
    <div class="chat-box" id="chat-box">
        <div class="bot-message">Welcome! I'm RayBOT. Type or speak to start chatting.</div>
    </div>
-   <input type="text" id="user-input" placeholder="Type a message">
-   <button id="send-btn">Send</button>
-   <button id="voice-btn">🎤 Speak</button>
+   <input type="text" id="user-input" placeholder="Type a message" aria-label="Chat message input">
+   <button id="send-btn" aria-label="Send message">Send</button>
+   <button id="voice-btn" aria-label="Speak message">🎤 Speak</button>
 
-   <!-- Admin Login -->
    <div class="admin-login">
        <h2>Admin Access</h2>
-       <input type="text" id="admin-username" placeholder="Enter admin username">
-       <input type="password" id="admin-password" placeholder="Enter admin password">
+       <input type="text" id="admin-username" placeholder="Enter admin username" aria-label="Admin username">
+       <input type="password" id="admin-password" placeholder="Enter admin password" aria-label="Admin password">
        <button id="login-btn">Login</button>
    </div>
 
-   <!-- Admin Panel -->
    <div id="admin-panel" class="hidden">
        <h3>Add New Q&A</h3>
-       <input type="text" id="new-question" placeholder="Enter new question trigger">
-       <input type="text" id="new-answer" placeholder="Enter new answer">
+       <input type="text" id="new-question" placeholder="Enter new question trigger" aria-label="New question">
+       <input type="text" id="new-answer" placeholder="Enter new answer" aria-label="New answer">
        <button id="add-qa-btn">Add Q&A</button>
    </div>
 
    <script>
-       // Register PWA dynamically
-       const manifest = {
-           name: "RayBOT Chat",
-           short_name: "RayBOT",
-           start_url: "./",
-           display: "standalone",
-           background_color: "#ffffff",
-           icons: [{ src: "icon.png", sizes: "192x192", type: "image/png" }]
-       };
-       const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
-       const link = document.createElement("link");
-       link.rel = "manifest";
-       link.href = URL.createObjectURL(blob);
-       document.head.appendChild(link);
-
-       if ("serviceWorker" in navigator) {
-           navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
-               const cacheName = 'raybot-cache-v1';
-               const assets = ['/', '/index.html'];
-               self.addEventListener('install', event => {
-                   event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(assets)));
-               });
-               self.addEventListener('fetch', event => {
-                   event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
-               });
-           `], { type: "application/javascript" })));
-       }
-
-       // Chat logic
-       let responses = {
+       // Load responses from localStorage or default
+       let responses = JSON.parse(localStorage.getItem("raybot-responses")) || {
            "HELLO": ["Hello! How can I help?", "Hey there!"],
            "AY": ["Ray is my creator", "RAY is good", "RAY is not bad", "RAY is in Guam"]
        };
 
-       // Admin login validation
+       // Admin credentials (for now, keep basic)
        const correctUsername = "1";
        const correctPassword = "2";
+
        document.getElementById("login-btn").addEventListener("click", () => {
            const enteredUsername = document.getElementById("admin-username").value;
            const enteredPassword = document.getElementById("admin-password").value;
@@ -86,15 +60,16 @@
            }
        });
 
-       document.getElementById("send-btn").addEventListener("click", () => handleInput());
-       document.getElementById("voice-btn").addEventListener("click", () => voiceInput());
+       document.getElementById("send-btn").addEventListener("click", handleInput);
+       document.getElementById("voice-btn").addEventListener("click", voiceInput);
 
        function handleInput() {
-           const userInput = document.getElementById("user-input").value.toUpperCase();
-           if (!userInput.trim()) return;
+           const inputEl = document.getElementById("user-input");
+           const userInput = inputEl.value.trim().toUpperCase();
+           if (!userInput) return;
            addMessage("user-message", userInput);
            respond(userInput);
-           document.getElementById("user-input").value = "";
+           inputEl.value = "";
        }
 
        function voiceInput() {
@@ -109,7 +84,10 @@
        }
 
        function respond(input) {
-           const reply = responses[input] ? responses[input][Math.floor(Math.random() * responses[input].length)] : "I don't understand, can you rephrase?";
+           let matchedKey = Object.keys(responses).find(key => input.includes(key));
+           const reply = matchedKey
+               ? responses[matchedKey][Math.floor(Math.random() * responses[matchedKey].length)]
+               : "I don't understand, can you rephrase?";
            addMessage("bot-message", reply);
            speak(reply);
        }
@@ -129,13 +107,13 @@
            synth.speak(utterance);
        }
 
-       // Admin can add new question-answer pairs
        document.getElementById("add-qa-btn").addEventListener("click", () => {
-           const newQuestion = document.getElementById("new-question").value.toUpperCase();
-           const newAnswer = document.getElementById("new-answer").value;
+           const newQuestion = document.getElementById("new-question").value.trim().toUpperCase();
+           const newAnswer = document.getElementById("new-answer").value.trim();
            if (newQuestion && newAnswer) {
                if (!responses[newQuestion]) responses[newQuestion] = [];
                responses[newQuestion].push(newAnswer);
+               localStorage.setItem("raybot-responses", JSON.stringify(responses));
                alert("New Q&A added!");
                document.getElementById("new-question").value = "";
                document.getElementById("new-answer").value = "";
@@ -144,6 +122,13 @@
            }
        });
 
+       // Register service worker
+       if ('serviceWorker' in navigator) {
+           navigator.serviceWorker.register('service-worker.js')
+               .then(reg => console.log('Service Worker Registered'))
+               .catch(err => console.error('SW registration failed', err));
+       }
    </script>
 </body>
 </html>
+
